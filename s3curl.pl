@@ -36,6 +36,12 @@ my @endpoints = ( 's3.amazonaws.com',
                   's3-ap-northeast-1.amazonaws.com',
                   's3-sa-east-1.amazonaws.com', );
 
+my @resources = ("acl", "delete", "location", "logging", "notification",
+            "partNumber", "policy", "requestPayment", "response-cache-control",
+            "response-content-disposition", "response-content-encoding", "response-content-language",
+            "response-content-type", "response-expires", "torrent",
+            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore");
+
 my $CURL = "curl";
 
 # stop customizing here
@@ -58,6 +64,7 @@ my $copySourceObject;
 my $copySourceRange;
 my $postBody;
 my $calculateContentMD5 = 0;
+my $sm = 0;
 
 my $DOTFILENAME=".s3curl";
 my $EXECFILE=$FindBin::Bin;
@@ -98,6 +105,7 @@ GetOptions(
     'help' => \$help,
     'debug' => \$debug,
     'calculateContentMd5' => \$calculateContentMD5,
+    'sm' => \$sm,
 );
 
 my $usage = <<USAGE;
@@ -115,6 +123,8 @@ Usage $0 --id friendly-name (or AWSAccessKeyId) [options] -- [curl-options] [URL
   --createBucket [<region>]   create-bucket with optional location constraint
   --head                      HEAD request
   --debug                     enable debug logging
+  --sm                        do NOT sign the metadata in a metadata query (for ECS 3.0). Signing is the default
+
  common curl options:
   -H 'x-amz-acl: public-read' another way of using canned ACLs
   -v                          verbose logging
@@ -184,22 +194,27 @@ for (my $i=0; $i<@ARGV; $i++) {
         my $query = defined $4 ? $4 : "";
         debug("Found the url: host=$host; port=$port; uri=$requestURI; query=$query;");
         if (length $requestURI) {
+            debug("length is true requestURI = $requestURI");
             $resource = $requestURI;
         } else {
+            debug("length is false");
             $resource = "/";
         }
         my @attributes = ();
-        for my $attribute ("acl", "delete", "location", "logging", "notification",
-            "partNumber", "policy", "requestPayment", "response-cache-control",
-            "response-content-disposition", "response-content-encoding", "response-content-language",
-            "response-content-type", "response-expires", "torrent",
-            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore") {
+        #if the -sm command line option was used then this is probably a search metadata query
+        #and the query=xxx needs to be signed in ECS v3.0
+        if ( ! $sm ) {
+            push (@resources, "query");
+        }
+        for my $attribute (sort @resources) {
             if ($query =~ /(?:^|&)($attribute(?:=[^&]*)?)(?:&|$)/) {
                 push @attributes, uri_unescape($1);
             }
         }
         if (@attributes) {
+            debug("there are attributes");
             $resource .= "?" . join("&", @attributes);
+            debug("resource in attributes = $resource");
         }
         # handle virtual hosted requests
         getResourceToSign($host, \$resource);
@@ -238,6 +253,14 @@ foreach (sort (keys %xamzHeaders)) {
 # NOTE: Need to skip the Date: header, in case x-amz-date got provided
 my $httpDate = (defined $xamzHeaders{'x-amz-date'}) ? '' : POSIX::strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime);
 my $stringToSign = "$method\n$contentMD5\n$contentType\n$httpDate\n$xamzHeadersToSign$resource";
+
+debug("method = $method");
+debug("contentMD5 = $contentMD5");
+debug("contentType = $contentType");
+debug("httpDate = $httpDate");
+debug("xamzHeadersToSign = $xamzHeadersToSign");
+debug("resource = $resource");
+debug(" ");
 
 debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
