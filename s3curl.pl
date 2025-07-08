@@ -113,6 +113,7 @@ GetOptions(
     'date:s' => \$date,
     'querystringauth=s' => \$querystringauth,
     'calculateContentMd5' => \$calculateContentMD5,
+    'servicePath:s' => \$servicePath,
     'ordinarysigning' => \$ordinarysigning,
     'endpoint:s' => \@endpoints,
 );
@@ -238,12 +239,9 @@ for (my $i=0; $i<@ARGV; $i++) {
             $resource .= "?" . join("&", @attributes);
         }
         # handle virtual hosted requests
-        if (! $ordinarysigning) {
-            getResourceToSign($host, \$resource);
+        
         getResourceToSign($host, \$resource);
-        } else {
-            debug("ordinary endpoint signing case forced with option \"ordinarysigning\"");
-        }
+        
         debug("resource to sign is $resource");
     }
     elsif ($arg =~ /\-X/) {
@@ -256,7 +254,6 @@ for (my $i=0; $i<@ARGV; $i++) {
         if ($header =~ /^[Hh][Oo][Ss][Tt]:(.+)$/) {
             $host = $1;
         }
-#         elsif ($header =~ /^(?'header'[Xx]-(([Aa][Mm][Zz])|([Ee][Mm][Cc]))-[^:]+): *(?'val'.+)$/) {
 	elsif ($header =~ /^([Xx]-(?:(?:[Aa][Mm][Zz])|(?:[Ee][Mm][Cc]))-[^:]+): *(.+)$/) {
             my $name = lc $1;
             my $value = $2;
@@ -300,11 +297,9 @@ if ($date) {
 }
 my $stringToSign = "$method\n$contentMD5\n$contentType\n$httpDate\n$xamzHeadersToSign$resource";
 debug("StringToSign='" . $stringToSign . "'");
-debug("SecretKey='" . substr($secretKey,0,4) . '...' . substr($secretKey,-4,4) . "' (masked)");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
 my $signature = encode_base64($hmac->digest, "");
-debug("signature='" . $signature . "'");
 
 
 
@@ -316,7 +311,7 @@ if (! $querystringauth) {
 	push @args, ("-H", "Authorization: AWS $keyId:$signature");
 	push @args, ("-H", "x-amz-acl: $acl") if (defined $acl);
 	push @args, ("-H", "content-type: $contentType") if (defined $contentType);
-        push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
+    push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
 }
 push @args, ("-L");
 push @args, ("-H", "content-type: $contentType") if (defined $contentType);
@@ -362,7 +357,7 @@ sub debug {
     my ($str) = @_;
     $str =~ s/\n/\\n/g;
 #   print STDERR "s3curl: $str\n" if ($debug);
-    print STDERR "s3curl: $str\n";
+	print STDERR "s3curl: $str\n";
 }
 
 sub getResourceToSign {
