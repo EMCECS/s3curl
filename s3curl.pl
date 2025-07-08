@@ -62,6 +62,7 @@ my $copySourceRange;
 my $postBody;
 my $calculateContentMD5 = 0;
 my $ordinarysigning = "";
+my $servicePath = "";
 
 my $DOTFILENAME=".s3curl";
 my $EXECFILE=$FindBin::Bin;
