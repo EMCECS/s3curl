@@ -196,12 +196,19 @@ for (my $i=0; $i<@ARGV; $i++) {
             $resource = "/";
         }
         my @attributes = ();
+	my $query_param = 'query';
+        my $attributes_param='attributes';
         for my $attribute ("acl", "delete", "location", "logging", "notification",
             "partNumber", "policy", "requestPayment", "response-cache-control",
             "response-content-disposition", "response-content-encoding", "response-content-language",
             "response-content-type", "response-expires", "torrent",
-            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout") {
+            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout","attributes") {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
+		    if (grep($query_param,@attributes)){
+			    if($attribute==$attributes_param){
+				    next;
+			    }
+		    }
                 my $kv_pair = sprintf("%s%s", $1, $2 ? sprintf("=%s", $2) : '');
 
                 push @attributes, uri_unescape($kv_pair);
