@@ -357,7 +357,7 @@ sub debug {
     my ($str) = @_;
     $str =~ s/\n/\\n/g;
 #   print STDERR "s3curl: $str\n" if ($debug);
-	print STDERR "s3curl: $str\n";
+    print STDERR "s3curl: $str\n";
 }
 
 sub getResourceToSign {
