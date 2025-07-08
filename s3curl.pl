@@ -62,6 +62,7 @@ my $copySourceRange;
 my $postBody;
 my $calculateContentMD5 = 0;
 my $ordinarysigning = "";
+my $servicePath = "";
 
 my $DOTFILENAME=".s3curl";
 my $EXECFILE=$FindBin::Bin;
@@ -221,7 +222,7 @@ for (my $i=0; $i<@ARGV; $i++) {
             "response-content-disposition", "response-content-encoding", "response-content-language",
             "response-content-type", "response-expires", "torrent",
             "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout",
-			"fileaccess", "searchmetadata", "query", "cors", "isstaleallowed") {
+			"fileaccess","cors", "isstaleallowed") {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
                 my $kv_pair = sprintf("%s%s", $1, $2 ? sprintf("=%s", $2) : '');
 
