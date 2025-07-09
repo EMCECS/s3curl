@@ -203,7 +203,7 @@ for (my $i=0; $i<@ARGV; $i++) {
             "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout", "attributes") {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
                 
-		# do not sign "attributes" parameter if this is a metadata query
+		# do not sign "attributes" parameter if this is a metadata search query
                 if ($attribute == "attributes" && grep("query", @attributes)) {
 		    next;
                 }        
