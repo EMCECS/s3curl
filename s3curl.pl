@@ -204,7 +204,7 @@ for (my $i=0; $i<@ARGV; $i++) {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
                 
 		# do not sign "attributes" parameter if this is a metadata query
-                if ($attribute == "attributes" and grep("query", @attributes) {
+                if ($attribute == "attributes" && grep("query", @attributes)) {
 		    next;
                 }        
 		my $kv_pair = sprintf("%s%s", $1, $2 ? sprintf("=%s", $2) : '');
