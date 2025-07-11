@@ -200,8 +200,13 @@ for (my $i=0; $i<@ARGV; $i++) {
             "partNumber", "policy", "requestPayment", "response-cache-control",
             "response-content-disposition", "response-content-encoding", "response-content-language",
             "response-content-type", "response-expires", "torrent",
-            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout") {
+            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout", "attributes") {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
+
+                # do not sign "attributes" parameter if this is a metadata search query
+                if ($attribute == "attributes" && grep("query", @attributes)) {
+                    next;
+                }
                 my $kv_pair = sprintf("%s%s", $1, $2 ? sprintf("=%s", $2) : '');
 
                 push @attributes, uri_unescape($kv_pair);
