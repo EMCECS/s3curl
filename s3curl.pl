@@ -245,7 +245,7 @@ for (my $i=0; $i<@ARGV; $i++) {
         else {
             debug("ordinary endpoint signing case forced with option \"ordinarysigning\"");
         }
-        
+
         debug("resource to sign is $resource");
     }
     elsif ($arg =~ /\-X/) {
@@ -287,7 +287,8 @@ if ($querystringauth) {
     if ($querystringauth =~ /^\d+$/) {
         $httpDate = scalar(time()) + $querystringauth * 3600;
         debug("Auth in query, Auth expiration $querystringauth days from now");
-    } elsif ($querystringauth =~ /^(\d+)([dhms])$/) {
+    }
+    elsif ($querystringauth =~ /^(\d+)([dhms])$/) {
         $httpDate = scalar(time()) + $1 * $duration{$2};
         debug("Auth in query, argument \"$querystringauth\", Auth expiration " . $1 * $duration{$2} . " seconds from now.");
     }
@@ -339,15 +340,15 @@ if (defined $createBucket) {
 push @args, @ARGV;
 
 if ($querystringauth) {
-    $args[-1] .= "@{[$args[-1] =~ /\?/? '&': '?']}". 'AWSAccessKeyId=' . $keyId .
+    $args[-1] .= "@{[ $args[-1] =~ /\?/ ? '&' : '?' ]}" . 'AWSAccessKeyId=' . $keyId .
         '&Expires=' . $httpDate . '&Signature=' . $signature;
 }
 # here, use of map adds single quotes to any arg token containing spaces.
 # This is just to make it convenient to cut and paste command into shell
 
 debug("exec $CURL " . join (" ", map { / / && qq/'$_'/ || $_ } @args));
-if (! $noexec ){
-	exec($CURL, @args)  or die "can't exec program: $!";
+if (!$noexec) {
+    exec($CURL, @args) or die "can't exec program: $!";
 }
 
 sub debug {
@@ -361,7 +362,7 @@ sub getResourceToSign {
 
     if ($servicePath) {
         $$resourceToSignRef =~ s/$servicePath//;
-        debug("getResourceToSign - host:${host},ref:".$$resourceToSignRef."\n");
+        debug("getResourceToSign - host:${host},ref:" . $$resourceToSignRef . "\n");
     }
 
     for my $ep (@endpoints) {
