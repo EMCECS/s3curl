@@ -120,8 +120,7 @@ GetOptions(
 
 debug("endpoints: @endpoints");
 
-#my $usage = <<USAGE;
-my $usage = "
+my $usage = <<USAGE;
 Usage $0 --id friendly-name (or AWSAccessKeyId) [options] -- [curl-options] [URL]
  options:
   --key SecretAccessKey       id/key are AWSAcessKeyId and Secret (unsafe)
@@ -146,18 +145,17 @@ Usage $0 --id friendly-name (or AWSAccessKeyId) [options] -- [curl-options] [URL
  common curl options:
   -H 'x-amz-acl: public-read' another way of using canned ACLs
   -v                          verbose logging
-";
-#USAGE
+USAGE
 die $usage if $help || !defined $keyId;
 
 if ($cmdLineSecretKey) {
-#    printCmdlineSecretWarning();
+     printCmdlineSecretWarning();
 #    sleep 5;
 
     $secretKey = $cmdLineSecretKey;
 } else {
     my $keyinfo = $awsSecretAccessKeys{$keyId};
-    die "I don't know about key with friendly name $keyId.\n" .
+    die "I don't know about key with friendly name $keyId." .
         "Do you need to set it up in $DOTFILE?\n"
         unless defined $keyinfo;
 
