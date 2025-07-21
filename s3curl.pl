@@ -239,8 +239,13 @@ for (my $i=0; $i<@ARGV; $i++) {
             $resource .= "?" . join("&", @attributes);
         }
         # handle virtual hosted requests
-        
-        getResourceToSign($host, \$resource);
+
+        if (!$ordinarysigning) {
+            getResourceToSign($host, \$resource);
+        }
+        else {
+            debug("ordinary endpoint signing case forced with option \"ordinarysigning\"");
+        }
         
         debug("resource to sign is $resource");
     }
