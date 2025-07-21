@@ -150,14 +150,14 @@ USAGE
 die $usage if $help || !defined $keyId;
 
 if ($cmdLineSecretKey) {
-     printCmdlineSecretWarning();
-#    sleep 5;
+    printCmdlineSecretWarning();
+    #    sleep 5;
 
     $secretKey = $cmdLineSecretKey;
 } else {
     my $keyinfo = $awsSecretAccessKeys{$keyId};
-    die "I don't know about key with friendly name $keyId." .
-        "Do you need to set it up in $DOTFILE?\n"
+    die "I don't know about key with friendly name $keyId. " .
+        "Do you need to set it up in $DOTFILE?"
         unless defined $keyinfo;
 
     $keyId = $keyinfo->{id};
