@@ -138,6 +138,7 @@ Usage $0 --id friendly-name (or AWSAccessKeyId) [options] -- [curl-options] [URL
   --querystringauth <days>    use query string auth, with Expires=time(now) + <days>
                               You can also use <integer> with d,h,m,s suffix for an
                               arbitrary interval. e.g. 72h for 72 hours.
+  --date <date>               use date as expiry time even if querystringauth is provided
   --ordinarysigning           use ordinary signing case even when hostname is not known
   --debug                     enable debug logging
   --servicePath               service path which is not part of resource
