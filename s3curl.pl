@@ -269,7 +269,6 @@ die "Couldn't find resource by digging through your curl command line args!"
 
 my $xamzHeadersToSign = "";
 
-setlocale(LC_TIME, "C");
 
 foreach (sort (keys %xamzHeaders)) {
     my $headerValue = $xamzHeaders{$_};
@@ -351,11 +350,9 @@ if (! $noexec ){
 }
 
 sub debug {
-	return if ! $debug;
     my ($str) = @_;
     $str =~ s/\n/\\n/g;
-#   print STDERR "s3curl: $str\n" if ($debug);
-    print STDERR "s3curl: $str\n";
+    print STDERR "s3curl: $str\n" if ($debug);
 }
 
 sub getResourceToSign {
