@@ -313,11 +313,9 @@ if (! $querystringauth) {
 	push @args, ("-H", "Authorization: AWS $keyId:$signature");
 	push @args, ("-H", "x-amz-acl: $acl") if (defined $acl);
 	push @args, ("-H", "content-type: $contentType") if (defined $contentType);
-        push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
+    push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
 }
 push @args, ("-L");
-push @args, ("-H", "content-type: $contentType") if (defined $contentType);
-push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
 push @args, ("-T", $fileToPut) if (defined $fileToPut);
 push @args, ("-X", "DELETE") if (defined $doDelete);
 push @args, ("-X", "POST") if(defined $postBody);
