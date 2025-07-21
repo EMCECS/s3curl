@@ -274,8 +274,6 @@ die "Couldn't find resource by digging through your curl command line args!"
     unless defined $resource;
 
 my $xamzHeadersToSign = "";
-
-
 foreach (sort (keys %xamzHeaders)) {
     my $headerValue = $xamzHeaders{$_};
     $xamzHeadersToSign .= "$_:$headerValue\n";
@@ -303,7 +301,6 @@ debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
 my $signature = encode_base64($hmac->digest, "");
-
 
 
 my @args = ();
