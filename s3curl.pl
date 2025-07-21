@@ -306,7 +306,6 @@ my $signature = encode_base64($hmac->digest, "");
 
 my @args = ();
 if (!$querystringauth) {
-
     push @args, ("-v") if ($debug);
     push @args, ("-H", "Date: $httpDate") if ($httpDate);
     push @args, ("-H", "Authorization: AWS $keyId:$signature");
