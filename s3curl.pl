@@ -64,7 +64,6 @@ my $postBody;
 my $calculateContentMD5 = 0;
 my $ordinarysigning = "";
 my $servicePath = "";
-my $signature = "";
 
 my $DOTFILENAME=".s3curl";
 my $EXECFILE=$FindBin::Bin;
@@ -304,11 +303,9 @@ debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
 
+$signature = encode_base64($hmac->digest, "");
 if ($querystringauth) {
-    $signature = uri_escape(encode_base64($hmac->digest, ""));
-}
-else {
-    $signature = encode_base64($hmac->digest, "");
+    $signature = uri_escape($signature);
 }
 
 my @args = ();
