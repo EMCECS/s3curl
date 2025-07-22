@@ -303,7 +303,7 @@ debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
 
-$signature = encode_base64($hmac->digest, "");
+my $signature = encode_base64($hmac->digest, "");
 if ($querystringauth) {
     $signature = uri_escape($signature);
 }
