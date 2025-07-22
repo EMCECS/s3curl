@@ -53,11 +53,15 @@ my $createBucket;
 my $doDelete;
 my $doHead;
 my $help;
+my $noexec = 0;
 my $debug = 0;
+my $date = '';
+my $querystringauth = 0;
 my $copySourceObject;
 my $copySourceRange;
 my $postBody;
 my $calculateContentMD5 = 0;
+my $ordinarysigning = "";
 my $servicePath = "";
 
 my $DOTFILENAME=".s3curl";
@@ -65,6 +69,13 @@ my $EXECFILE=$FindBin::Bin;
 my $LOCALDOTFILE = $EXECFILE . "/" . $DOTFILENAME;
 my $HOMEDOTFILE = $ENV{HOME} . "/" . $DOTFILENAME;
 my $DOTFILE = -f $LOCALDOTFILE? $LOCALDOTFILE : $HOMEDOTFILE;
+
+my %duration = (
+    'd' => 24 * 3600,
+    'h' => 3600,
+    'm' => 60,
+    's' => 1,
+);
 
 if (-f $DOTFILE) {
     open(CONFIG, $DOTFILE) || die "can't open $DOTFILE: $!";
@@ -97,9 +108,13 @@ GetOptions(
     'createBucket:s' => \$createBucket,
     'head' => \$doHead,
     'help' => \$help,
+    'noexec' => \$noexec,
     'debug' => \$debug,
+    'date:s' => \$date,
+    'querystringauth=s' => \$querystringauth,
     'calculateContentMd5' => \$calculateContentMD5,
     'servicePath:s' => \$servicePath,
+    'ordinarysigning' => \$ordinarysigning,
     'endpoint:s' => \@endpoints,
 );
 
@@ -119,6 +134,12 @@ Usage $0 --id friendly-name (or AWSAccessKeyId) [options] -- [curl-options] [URL
   --copySrcRange {startIndex}-{endIndex}
   --createBucket [<region>]   create-bucket with optional location constraint
   --head                      HEAD request
+  --noexec                    show curl command but do not execute it
+  --querystringauth <days>    use query string auth, with Expires=time(now) + <days>
+                              You can also use <integer> with d,h,m,s suffix for an
+                              arbitrary interval. e.g. 72h for 72 hours.
+  --date <date>               use date as expiry time even if querystringauth is provided
+  --ordinarysigning           use ordinary signing case even when hostname is not known
   --debug                     enable debug logging
   --servicePath               service path which is not part of resource
   --endpoint                  add endpoint to be excluded from signed string. Specify multiple parameters if you need add more than one.
@@ -130,7 +151,7 @@ die $usage if $help || !defined $keyId;
 
 if ($cmdLineSecretKey) {
     printCmdlineSecretWarning();
-    sleep 5;
+    #    sleep 5;
 
     $secretKey = $cmdLineSecretKey;
 } else {
@@ -200,11 +221,12 @@ for (my $i=0; $i<@ARGV; $i++) {
             "partNumber", "policy", "requestPayment", "response-cache-control",
             "response-content-disposition", "response-content-encoding", "response-content-language",
             "response-content-type", "response-expires", "torrent",
-            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout", "attributes") {
+            "uploadId", "uploads", "versionId", "versioning", "versions", "website", "lifecycle", "restore", "query", "searchmetadata", "fanout", "attributes",
+            "fileaccess", "cors", "isstaleallowed") {
             if ($query =~ /(?:^|&)($attribute)=?([^&]+)?(?:&|$)/) {
 
                 # do not sign "attributes" parameter if this is a metadata search query
-                if ($attribute == "attributes" && grep("query", @attributes)) {
+                if ($attribute eq "attributes" && grep("query", @attributes)) {
                     next;
                 }
                 my $kv_pair = sprintf("%s%s", $1, $2 ? sprintf("=%s", $2) : '');
@@ -216,7 +238,15 @@ for (my $i=0; $i<@ARGV; $i++) {
             $resource .= "?" . join("&", @attributes);
         }
         # handle virtual hosted requests
-        getResourceToSign($host, \$resource);
+
+        if (!$ordinarysigning) {
+            getResourceToSign($host, \$resource);
+        }
+        else {
+            debug("ordinary endpoint signing case forced with option \"ordinarysigning\"");
+        }
+
+        debug("resource to sign is $resource");
     }
     elsif ($arg =~ /\-X/) {
         # mainly for DELETE
@@ -253,6 +283,21 @@ foreach (sort (keys %xamzHeaders)) {
 my $httpDate = (defined $xamzHeaders{'x-amz-date'}) ? '' : POSIX::strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime);
 my $stringToSign = "$method\n$contentMD5\n$contentType\n$httpDate\n$xamzHeadersToSign$resource";
 
+if ($querystringauth) {
+    if ($querystringauth =~ /^\d+$/) {
+        $httpDate = scalar(time()) + $querystringauth * 3600;
+        debug("Auth in query, Auth expiration $querystringauth days from now");
+    }
+    elsif ($querystringauth =~ /^(\d+)([dhms])$/) {
+        $httpDate = scalar(time()) + $1 * $duration{$2};
+        debug("Auth in query, argument \"$querystringauth\", Auth expiration " . $1 * $duration{$2} . " seconds from now.");
+    }
+}
+if ($date) {
+    debug("setting httpdate to \"$date\"");
+    $httpDate = $date;
+}
+my $stringToSign = "$method\n$contentMD5\n$contentType\n$httpDate\n$xamzHeadersToSign$resource";
 debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
@@ -260,16 +305,18 @@ my $signature = encode_base64($hmac->digest, "");
 
 
 my @args = ();
-push @args, ("-v") if ($debug);
-push @args, ("-H", "Date: $httpDate") if ($httpDate);
-push @args, ("-H", "Authorization: AWS $keyId:$signature");
-push @args, ("-H", "x-amz-acl: $acl") if (defined $acl);
+if (!$querystringauth) {
+    push @args, ("-v") if ($debug);
+    push @args, ("-H", "Date: $httpDate") if ($httpDate);
+    push @args, ("-H", "Authorization: AWS $keyId:$signature");
+    push @args, ("-H", "x-amz-acl: $acl") if (defined $acl);
+    push @args, ("-H", "content-type: $contentType") if (defined $contentType);
+    push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
+}
 push @args, ("-L");
-push @args, ("-H", "content-type: $contentType") if (defined $contentType);
-push @args, ("-H", "Content-MD5: $contentMD5") if (length $contentMD5);
 push @args, ("-T", $fileToPut) if (defined $fileToPut);
 push @args, ("-X", "DELETE") if (defined $doDelete);
-push @args, ("-X", "POST") if(defined $postBody);
+push @args, ("-X", "POST") if (defined $postBody);
 push @args, ("-I") if (defined $doHead);
 
 if (defined $createBucket) {
@@ -291,8 +338,17 @@ if (defined $createBucket) {
 
 push @args, @ARGV;
 
+if ($querystringauth) {
+    $args[-1] .= "@{[ $args[-1] =~ /\?/ ? '&' : '?' ]}" . 'AWSAccessKeyId=' . $keyId .
+        '&Expires=' . $httpDate . '&Signature=' . $signature;
+}
+# here, use of map adds single quotes to any arg token containing spaces.
+# This is just to make it convenient to cut and paste command into shell
+
 debug("exec $CURL " . join (" ", map { / / && qq/'$_'/ || $_ } @args));
-exec($CURL, @args)  or die "can't exec program: $!";
+if (!$noexec) {
+    exec($CURL, @args) or die "can't exec program: $!";
+}
 
 sub debug {
     my ($str) = @_;
@@ -305,7 +361,7 @@ sub getResourceToSign {
 
     if ($servicePath) {
         $$resourceToSignRef =~ s/$servicePath//;
-        debug ("resourceToSignRef: $$resourceToSignRef");
+        debug("getResourceToSign - host:${host},ref:" . $$resourceToSignRef . "\n");
     }
 
     for my $ep (@endpoints) {
