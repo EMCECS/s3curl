@@ -25,6 +25,7 @@ use Getopt::Long qw(GetOptions);
 
 use constant STAT_MODE => 2;
 use constant STAT_UID => 4;
+use URI::Escape;
 
 # begin customizing here
 my @endpoints = ( 's3.amazonaws.com',
@@ -301,8 +302,11 @@ my $stringToSign = "$method\n$contentMD5\n$contentType\n$httpDate\n$xamzHeadersT
 debug("StringToSign='" . $stringToSign . "'");
 my $hmac = Digest::HMAC_SHA1->new($secretKey);
 $hmac->add($stringToSign);
-my $signature = encode_base64($hmac->digest, "");
 
+my $signature = encode_base64($hmac->digest, "");
+if ($querystringauth) {
+    $signature = uri_escape($signature);
+}
 
 my @args = ();
 if (!$querystringauth) {
